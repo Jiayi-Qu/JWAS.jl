@@ -91,7 +91,7 @@ mutable struct Genotypes
   ntraits           #number of traits included in the model
 
   genetic_variance  #genetic variance
-  G                 #marker effect variance; ST->Float64;MT->Array{Float64,2}
+  G                 #marker effect variance; ST->Array{Float64,1};MT->Array{Array{Float64,2},1}
   scale             #scale parameter for marker effect variance (G)
   df                #degree of freedom
 
