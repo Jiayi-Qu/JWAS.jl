@@ -43,7 +43,7 @@ include("categorical_trait/categorical_trait.jl")
 include("structure_equation_model/SEM.jl")
 
 #Latent Traits
-include("nonlinear/nonlinear.jl")
+include("Nonlinear/nonlinear.jl")
 
 #output
 include("output.jl")
@@ -159,11 +159,14 @@ function runMCMC(mme::MME,df;
     ############################################################################
     # Pre-Check
     ############################################################################
-    if !ispath(output_folder)
-        mkdir(output_folder)
-    else
-        error("The folder $output_folder already exists.")#It is overwritten by the new output.
+    myfolder,folderi = output_folder, 1
+    while ispath(output_folder)
+        printstyled("The folder $output_folder already exists.\n" ,bold=false,color=:red)
+        output_folder = myfolder*string(folderi)
+        folderi += 1
     end
+    mkdir(output_folder)
+    printstyled("The folder $output_folder is created to save results.\n" ,bold=false,color=:green)
 
     mme.MCMCinfo = MCMCinfo(chain_length,burnin,output_samples_frequency,
                    printout_model_info,printout_frequency, single_step_analysis,
