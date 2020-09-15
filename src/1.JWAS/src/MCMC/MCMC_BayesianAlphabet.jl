@@ -306,7 +306,6 @@ function MCMC_BayesianAlphabet(mme,df)
                     Mi.scale = Mi_arrays[which_bayes].scale
                     Mi.π = Mi_arrays[which_bayes].π
                     Mi.nLoci = Mi_arrays[which_bayes].nLoci
-                    println(Mi.method[which_bayes])
                 end
             end
         end
