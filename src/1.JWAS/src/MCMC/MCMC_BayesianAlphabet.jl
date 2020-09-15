@@ -30,6 +30,7 @@ function MCMC_BayesianAlphabet(mme,df)
     is_mega_trait            = mme.MCMCinfo.mega_trait
     latent_traits            = mme.latent_traits
     nonlinear_function       = mme.nonlinear_function
+    is_Generalized_Bayes     = (Array{String,1} in [typeof(Mi.method) for Mi in mme.M] && !is_multi_trait)
     ############################################################################
     # Categorical Traits (starting values for maker effects defaulting to 0s)
     ############################################################################
@@ -63,9 +64,7 @@ function MCMC_BayesianAlphabet(mme,df)
             mGibbs    = GibbsMats(Mi.genotypes,invweights)
             Mi.mArray,Mi.mRinvArray,Mi.mpRinvm  = mGibbs.xArray,mGibbs.xRinvArray,mGibbs.xpRinvx
 
-            if Mi.method=="BayesB" #α=β.*δ
-                Mi.G        = fill(Mi.G,Mi.nMarkers) #a scalar in BayesC but a vector in BayeB
-            end
+            Mi.G        = fill(Mi.G,Mi.nMarkers)
             if Mi.method=="BayesL"         #in the MTBayesLasso paper
                 if mme.nModels == 1
                     Mi.G   /= 8           #mme.M.G is the scale Matrix, Sigma
@@ -86,10 +85,10 @@ function MCMC_BayesianAlphabet(mme,df)
             Mi.meanAlpha          = [zero(Mi.α[traiti]) for traiti = 1:Mi.ntraits] #marker effects
             Mi.meanAlpha2         = [zero(Mi.α[traiti]) for traiti = 1:Mi.ntraits] #marker effects
             Mi.meanDelta          = [zero(Mi.δ[traiti]) for traiti = 1:Mi.ntraits] #inclusion indicator for marker effects
-            Mi.meanVara           = zero(mme.R)  #posterir mean of variance for marker effect
-            Mi.meanVara2          = zero(mme.R)  #variable to save variance for marker effect
-            Mi.meanScaleVara      = zero(mme.R) #variable to save Scale parameter for prior of marker effect variance
-            Mi.meanScaleVara2     = zero(mme.R)  #variable to save Scale parameter for prior of marker effect variance
+            Mi.meanVara           = fill(zero(mme.R),Mi.nMarkers) #posterir mean of variance for marker effect
+            Mi.meanVara2          = fill(zero(mme.R),Mi.nMarkers) #variable to save variance for marker effect
+            Mi.meanScaleVara      = fill(zero(mme.R),Mi.nMarkers) #variable to save Scale parameter for prior of marker effect variance
+            Mi.meanScaleVara2     = fill(zero(mme.R),Mi.nMarkers) #variable to save Scale parameter for prior of marker effect variance
             if is_multi_trait
                 if is_mega_trait
                     Mi.π        = zeros(Mi.ntraits)
@@ -168,7 +167,6 @@ function MCMC_BayesianAlphabet(mme,df)
         ########################################################################
         if categorical_trait == true
             ycorr = categorical_trait_sample_liabilities(mme,ycorr,category_obs,threshold)
-            writedlm(outfile["threshold"],threshold',',')
         end
         ########################################################################
         # 1. Non-Marker Location Parameters
@@ -205,80 +203,110 @@ function MCMC_BayesianAlphabet(mme,df)
                 ########################################################################
                 # Marker Effects
                 ########################################################################
-                if Mi.method in ["BayesC","BayesB","BayesA"]
-                    locus_effect_variances = (Mi.method == "BayesC" ? fill(Mi.G,Mi.nMarkers) : Mi.G)
-                    if is_multi_trait
-                        if is_mega_trait
-                            megaBayesABC!(Mi,wArray,mme.R,locus_effect_variances)
-                        else
-                            MTBayesABC!(Mi,wArray,mme.R,locus_effect_variances)
-                        end
-                    else
-                        BayesABC!(Mi,ycorr,mme.R,locus_effect_variances)
+                #Mi.method 1) one methos 2) multiple methods e.g.,["BayesA","BayesB","BayesC"]
+                if is_Generalized_Bayes
+                    nmethods     = length(Mi.method)
+                    ycorr_arrays = fill(copy(ycorr),nmethods)
+                    Mi_arrays    = fill(deepcopy(Mi),nmethods)
+                    prob_methods = zeros(nmethods)
+                    methodi = 1
+                end
+                for method in Mi.method
+                    if is_Generalized_Bayes
+                        ycorr = ycorr_arrays[methodi]
+                        Mi    = Mi_arrays[methodi]
                     end
-                elseif Mi.method =="RR-BLUP"
-                    if is_multi_trait
-                        if is_mega_trait
-                            megaBayesC0!(Mi,wArray,mme.R)
+                    if method in ["BayesC","BayesB","BayesA"]
+                        if is_multi_trait
+                            if is_mega_trait
+                                megaBayesABC!(Mi,wArray,mme.R,Mi.G)
+                            else
+                                MTBayesABC!(Mi,wArray,mme.R,Mi.G)
+                            end
                         else
-                            MTBayesC0!(Mi,wArray,mme.R)
+                            BayesABC!(Mi,ycorr,mme.R,Mi.G)
                         end
-                    else
-                        BayesC0!(Mi,ycorr,mme.R)
+                    elseif method =="RR-BLUP"
+                        if is_multi_trait
+                            if is_mega_trait
+                                megaBayesC0!(Mi,wArray,mme.R)
+                            else
+                                MTBayesC0!(Mi,wArray,mme.R)
+                            end
+                        else
+                            BayesC0!(Mi,ycorr,mme.R)
+                        end
+                    elseif method == "BayesL"
+                        if is_multi_trait
+                            if is_mega_trait #problem with sampleGammaArray
+                                megaBayesL!(Mi,wArray,mme.R)
+                            else
+                                MTBayesL!(Mi,wArray,mme.R)
+                            end
+                        else
+                            BayesL!(Mi,ycorr,mme.R)
+                        end
+                    elseif method == "GBLUP"
+                        if is_multi_trait
+                            if is_mega_trait
+                                megaGBLUP!(Mi,wArray,mme.R,invweights)
+                            else
+                                MTGBLUP!(Mi,wArray,ycorr,mme.R,invweights)
+                            end
+                        else
+                            GBLUP!(Mi,ycorr,mme.R,invweights)
+                        end
                     end
-                elseif Mi.method == "BayesL"
-                    if is_multi_trait
-                        if is_mega_trait #problem with sampleGammaArray
-                            megaBayesL!(Mi,wArray,mme.R)
-                        else
-                            MTBayesL!(Mi,wArray,mme.R)
-                        end
-                    else
-                        BayesL!(Mi,ycorr,mme.R)
+                    if is_Generalized_Bayes
+                        prob_methods[methodi] = exp(-dot(ycorr,ycorr)/(2*mme.R))
+                        methodi += 1
                     end
-                elseif Mi.method == "GBLUP"
-                    if is_multi_trait
-                        if is_mega_trait
-                            megaGBLUP!(Mi,wArray,mme.R,invweights)
+                    ########################################################################
+                    # Marker Inclusion Probability
+                    ########################################################################
+                    if Mi.estimatePi == true
+                        if is_multi_trait
+                            if is_mega_trait
+                                Mi.π = [samplePi(sum(Mi.δ[i]), Mi.nMarkers) for i in 1:mme.nModels]
+                            else
+                                samplePi(Mi.δ,Mi.π) #samplePi(deltaArray,Mi.π,labels)
+                            end
                         else
-                            MTGBLUP!(Mi,wArray,ycorr,mme.R,invweights)
+                            Mi.π = samplePi(sum(Mi.δ[1]), Mi.nMarkers)
                         end
-                    else
-                        GBLUP!(Mi,ycorr,mme.R,invweights)
+                    end
+                    ########################################################################
+                    # Variance of Marker Effects
+                    ########################################################################
+                    if Mi.estimateVariance == true #methd specific estimate_variance
+                        sample_marker_effect_variance(Mi,constraint)
+                        if mme.MCMCinfo.double_precision == false
+                            Mi.G = Float32.(Mi.G)
+                        end
+                    end
+                    ########################################################################
+                    # Scale Parameter in Priors for Marker Effect Variances
+                    ########################################################################
+                    if Mi.estimateScale == true
+                        if !is_multi_trait
+                            a = size(Mi.G[1],1)*Mi.df/2   + 1
+                            b = sum(Mi.df ./ (2*Mi.G[1])) + 1
+                            Mi.scale = rand(Gamma(a,1/b))
+                        end
                     end
                 end
-                ########################################################################
-                # Marker Inclusion Probability
-                ########################################################################
-                if Mi.estimatePi == true
-                    if is_multi_trait
-                        if is_mega_trait
-                            Mi.π = [samplePi(sum(Mi.δ[i]), Mi.nMarkers) for i in 1:mme.nModels]
-                        else
-                            samplePi(Mi.δ,Mi.π) #samplePi(deltaArray,Mi.π,labels)
-                        end
-                    else
-                        Mi.π = samplePi(sum(Mi.δ[1]), Mi.nMarkers)
-                    end
-                end
-                ########################################################################
-                # Variance of Marker Effects
-                ########################################################################
-                if Mi.estimateVariance == true #methd specific estimate_variance
-                    sample_marker_effect_variance(Mi,constraint)
-                    if mme.MCMCinfo.double_precision == false
-                        Mi.G = Float32.(Mi.G)
-                    end
-                end
-                ########################################################################
-                # Scale Parameter in Priors for Marker Effect Variances
-                ########################################################################
-                if Mi.estimateScale == true
-                    if !is_multi_trait
-                        a = size(Mi.G,1)*Mi.df/2   + 1
-                        b = sum(Mi.df ./ (2*Mi.G)) + 1
-                        Mi.scale = rand(Gamma(a,1/b))
-                    end
+                if is_Generalized_Bayes
+                    prob_methods=prob_methods/sum(prob_methods)
+                    which_bayes = rand(Categorical(prob_methods))
+                    ycorr[:] = ycorr_arrays[which_bayes]
+                    Mi.α = Mi_arrays[which_bayes].α
+                    Mi.β = Mi_arrays[which_bayes].β
+                    Mi.δ = Mi_arrays[which_bayes].δ
+                    Mi.G = Mi_arrays[which_bayes].G
+                    Mi.scale = Mi_arrays[which_bayes].scale
+                    Mi.π = Mi_arrays[which_bayes].π
+                    Mi.nLoci = Mi_arrays[which_bayes].nLoci
+                    println(Mi.method[which_bayes])
                 end
             end
         end
@@ -329,7 +357,7 @@ function MCMC_BayesianAlphabet(mme,df)
                 if is_multi_trait
                     mme.M.scale = meanVara*(mme.df.marker-ntraits-1)
                 else
-                    mme.M.scale   = meanVara*(mme.df.marker-2)/mme.df.marker
+                    mme.M.scale = meanVara*(mme.df.marker-2)/mme.df.marker
                 end
             end
             if mme.pedTrmVec != 0
@@ -369,9 +397,6 @@ function MCMC_BayesianAlphabet(mme,df)
       end
       if causal_structure != false
         close(causal_structure_outfile)
-      end
-      if categorical_trait == true
-         close(outfile["threshold"])
       end
     end
     if methods == "GBLUP"

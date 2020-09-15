@@ -344,27 +344,29 @@ function errors_args(mme)
 
     if mme.M != 0
         for Mi in mme.M
-            if !(Mi.method in ["BayesL","BayesC","BayesB","BayesA","RR-BLUP","GBLUP"])
-                error(Mi.method," is not available in JWAS. Please read the documentation.")
-            end
+            if length(Mi.method) == 1 #not generalized Bayesian Alphabet
+                if !(Mi.method in ["BayesL","BayesC","BayesB","BayesA","RR-BLUP","GBLUP"])
+                    error(Mi.method," is not available in JWAS. Please read the documentation.")
+                end
 
-            if Mi.method in ["RR-BLUP","BayesL","GBLUP","BayesA"]
-                if Mi.π != false
-                    error(Mi.method," runs with π = false.")
-                elseif Mi.estimatePi == true
-                    error(Mi.method," runs with estimatePi = false.")
+                if Mi.method in ["RR-BLUP","BayesL","GBLUP","BayesA"]
+                    if Mi.π != false
+                        error(Mi.method," runs with π = false.")
+                    elseif Mi.estimatePi == true
+                        error(Mi.method," runs with estimatePi = false.")
+                    end
                 end
-            end
-            if Mi.method == "BayesA"
-                Mi.method = "BayesB"
-                println("BayesA is equivalent to BayesB with known π=0. BayesB with known π=0 runs.")
-            end
-            if Mi.method == "GBLUP"
-                if Mi.genetic_variance == false && Mi.G != false
-                    error("Please provide values for the genetic variance for GBLUP analysis")
+                if Mi.method == "BayesA"
+                    Mi.method = "BayesB"
+                    println("BayesA is equivalent to BayesB with known π=0. BayesB with known π=0 runs.")
                 end
-                if mme.MCMCinfo.single_step_analysis == true
-                    error("SSGBLUP is not available")
+                if Mi.method == "GBLUP"
+                    if Mi.genetic_variance == false && Mi.G != false
+                        error("Please provide values for the genetic variance for GBLUP analysis")
+                    end
+                    if mme.MCMCinfo.single_step_analysis == true
+                        error("SSGBLUP is not available")
+                    end
                 end
             end
             if mme.nModels > 1 && Mi.π != 0.0
