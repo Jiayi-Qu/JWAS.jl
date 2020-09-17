@@ -145,7 +145,7 @@ function sample_marker_effect_variance(Mi,constraint=false)
             G     = sample_variance(Mi.α[1], nloci, Mi.df, Mi.scale, invweights)
             Mi.G  = fill(G,Mi.nMarkers)
             if Mi.method == "BayesL"
-                sampleGammaArray!(Mi.gammaArray,Mi.α,Mi.G) # MH sampler of gammaArray (Appendix C in paper)
+                sampleGammaArray!(Mi.gammaArray,Mi.α,G) # MH sampler of gammaArray (Appendix C in paper)
             end
         elseif Mi.method == "BayesB"
             for j=1:Mi.nMarkers
@@ -167,4 +167,37 @@ function sample_marker_effect_variance(Mi,constraint=false)
             end
         end
     end
+end
+
+#Gamma Array in Bayesian LASSO
+function sampleGammaArray!(gammaArray,alphaArray,mmeMG)
+    Gi = inv(mmeMG)
+    nMarkers = size(gammaArray,1)
+    ntraits  = length(alphaArray)
+
+    Q  = zeros(nMarkers)
+    #println(alphaArray[1])
+    ntraits > 1 ? calcMTQ!(Q,nMarkers,ntraits,alphaArray,Gi) : calcSTQ!(Q,nMarkers,alphaArray[1],Gi)
+    gammaDist = Gamma(0.5,4) # 4 is the scale parameter, which corresponds to a rate parameter of 1/4
+    candidateArray = 1 ./ rand(gammaDist,nMarkers)
+    uniformArray = rand(nMarkers)
+    acceptProbArray = exp.(Q ./4 .*(2 ./ gammaArray - candidateArray))
+    replace = uniformArray .< acceptProbArray
+    gammaArray[replace] = 2 ./ candidateArray[replace]
+end
+
+function calcMTQ!(Q,nMarkers,ntraits,alphaArray,Gi)
+    for locus = 1:nMarkers
+      for traiti = 1:ntraits
+          for traitj = 1:ntraits
+              Q[locus] += alphaArray[traiti][locus]*alphaArray[traitj][locus]*Gi[traiti,traitj]
+          end
+      end
+    end
+end
+
+function calcSTQ!(Q,nMarkers,alphaArray,Gi)
+    println(Q)
+    println(alphaArray.^2 ./Gi)
+    Q .= alphaArray.^2 ./Gi
 end

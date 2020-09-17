@@ -204,14 +204,23 @@ function MCMC_BayesianAlphabet(mme,df)
                 # Marker Effects
                 ########################################################################
                 #Mi.method 1) one methos 2) multiple methods e.g.,["BayesA","BayesB","BayesC"]
+                methods      = Mi.method
                 if is_Generalized_Bayes
                     nmethods     = length(Mi.method)
-                    ycorr_arrays = fill(copy(ycorr),nmethods)
-                    Mi_arrays    = fill(deepcopy(Mi),nmethods)
+                    ycorr_arrays = []
+                    Mi_arrays    = []
+                    for i in 1:nmethods
+                        #do not use fill; it returns alias, not copies
+                        push!(Mi_arrays,deepcopy(Mi))
+                        push!(ycorr_arrays,deepcopy(ycorr))
+                        Mi_arrays[i].method = methods[i]
+                    end
                     prob_methods = zeros(nmethods)
                     methodi = 1
+                    genoi   = 1
                 end
-                for method in Mi.method
+                for methodi in 1:nmethods
+                    method = methods[methodi]
                     if is_Generalized_Bayes
                         ycorr = ycorr_arrays[methodi]
                         Mi    = Mi_arrays[methodi]
@@ -296,16 +305,12 @@ function MCMC_BayesianAlphabet(mme,df)
                     end
                 end
                 if is_Generalized_Bayes
-                    prob_methods=prob_methods/sum(prob_methods)
-                    which_bayes = rand(Categorical(prob_methods))
-                    ycorr[:] = ycorr_arrays[which_bayes]
-                    Mi.α = Mi_arrays[which_bayes].α
-                    Mi.β = Mi_arrays[which_bayes].β
-                    Mi.δ = Mi_arrays[which_bayes].δ
-                    Mi.G = Mi_arrays[which_bayes].G
-                    Mi.scale = Mi_arrays[which_bayes].scale
-                    Mi.π = Mi_arrays[which_bayes].π
-                    Mi.nLoci = Mi_arrays[which_bayes].nLoci
+                    prob_methods =prob_methods/sum(prob_methods)
+                    which_bayes  = rand(Categorical(prob_methods))
+                    ycorr[:]     = ycorr_arrays[which_bayes]
+                    mme.M[genoi] = deepcopy(Mi_arrays[which_bayes])
+                    mme.M[genoi].method = methods
+                    genoi += 1
                 end
             end
         end

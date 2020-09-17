@@ -1,31 +1,31 @@
 function megaBayesL!(genotypes,wArray,vare)
     for i in 1:length(wArray) #ntraits
         BayesL!(genotypes.mArray,genotypes.mRinvArray,genotypes.mpRinvm,
-            wArray[i],genotypes.α[i],genotypes.gammaArray,vare[i,i],genotypes.G[i,i])
+            wArray[i],genotypes.α[i],genotypes.gammaArray,vare[i,i],genotypes.G[i,i][1])
     end
 end
 
 function BayesL!(genotypes,ycorr,vare)
     BayesL!(genotypes.mArray,genotypes.mRinvArray,genotypes.mpRinvm,
-            ycorr,genotypes.α[1],genotypes.gammaArray,vare,genotypes.G)
+            ycorr,genotypes.α[1],genotypes.gammaArray,vare,genotypes.G[1])
 end
 
 function megaBayesC0!(genotypes,wArray,vare)
     for i in 1:length(wArray) #ntraits
         BayesL!(genotypes.mArray,genotypes.mRinvArray,genotypes.mpRinvm,
-                wArray[i],genotypes.α[i],[1.0],vare[i,i],genotypes.G[i,i])
+                wArray[i],genotypes.α[i],[1.0],vare[i,i],genotypes.G[i,i][1])
     end
 end
 
 function BayesC0!(genotypes,ycorr,vare)
     BayesL!(genotypes.mArray,genotypes.mRinvArray,genotypes.mpRinvm,
-            ycorr,genotypes.α[1],[1.0],vare,genotypes.G)
+            ycorr,genotypes.α[1],[1.0],vare,genotypes.G[1])
 end
 
 function BayesL!(xArray,xRinvArray,xpRinvx,
                  yCorr,
                  α,gammaArray,
-                 vRes,vEff)
+                 vRes,vEff::AbstractFloat)
     nMarkers = length(α)
     λ        = vRes/vEff
     function get_lambda_function(x)
