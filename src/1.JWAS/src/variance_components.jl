@@ -155,9 +155,10 @@ function sample_marker_effect_variance(Mi,constraint=false)
     else
         if Mi.method in ["RR-BLUP","BayesC","BayesL","GBLUP"]
             data = (Mi.method == "BayesC" ? Mi.β : Mi.α)
-            Mi.G =sample_variance(data, Mi.nMarkers, Mi.df, Mi.scale, invweights, constraint)
+            G =sample_variance(data, Mi.nMarkers, Mi.df, Mi.scale, invweights, constraint)
+            Mi.G  = fill(G,Mi.nMarkers)
             if Mi.method == "BayesL"
-                sampleGammaArray!(Mi.gammaArray,Mi.α,Mi.G) #MH sampler of gammaArray (Appendix C in paper)
+                sampleGammaArray!(Mi.gammaArray,Mi.α,G) #MH sampler of gammaArray (Appendix C in paper)
             end
         elseif Mi.method == "BayesB" #potential slowdown (scalar multiplication is used instead of matrices)
             marker_effects_matrix = reduce(hcat,Mi.β)'

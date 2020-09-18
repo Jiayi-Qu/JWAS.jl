@@ -30,7 +30,9 @@ function MCMC_BayesianAlphabet(mme,df)
     is_mega_trait            = mme.MCMCinfo.mega_trait
     latent_traits            = mme.latent_traits
     nonlinear_function       = mme.nonlinear_function
-    is_Generalized_Bayes     = (Array{String,1} in [typeof(Mi.method) for Mi in mme.M] && !is_multi_trait)
+    if mme.M != 0
+        is_Generalized_Bayes     = (Array{String,1} in [typeof(Mi.method) for Mi in mme.M] && !is_multi_trait)
+    end
     ############################################################################
     # Categorical Traits (starting values for maker effects defaulting to 0s)
     ############################################################################
@@ -204,9 +206,8 @@ function MCMC_BayesianAlphabet(mme,df)
                 # Marker Effects
                 ########################################################################
                 #Mi.method 1) one methos 2) multiple methods e.g.,["BayesA","BayesB","BayesC"]
-                methods      = Mi.method
+                methods,nmethods      = Mi.method, length(Mi.method)
                 if is_Generalized_Bayes
-                    nmethods     = length(Mi.method)
                     ycorr_arrays = []
                     Mi_arrays    = []
                     for i in 1:nmethods
