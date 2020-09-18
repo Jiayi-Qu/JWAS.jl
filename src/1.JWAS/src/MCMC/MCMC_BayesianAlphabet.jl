@@ -216,7 +216,6 @@ function MCMC_BayesianAlphabet(mme,df)
                         Mi_arrays[i].method = methods[i]
                     end
                     prob_methods = zeros(nmethods)
-                    methodi = 1
                     genoi   = 1
                 end
                 for methodi in 1:nmethods
@@ -224,6 +223,25 @@ function MCMC_BayesianAlphabet(mme,df)
                     if is_Generalized_Bayes
                         ycorr = ycorr_arrays[methodi]
                         Mi    = Mi_arrays[methodi]
+                    end
+                    ########################################################################
+                    # Variance of Marker Effects
+                    ########################################################################
+                    if Mi.estimateVariance == true #methd specific estimate_variance
+                        sample_marker_effect_variance(Mi,constraint)
+                        if mme.MCMCinfo.double_precision == false
+                            Mi.G = Float32.(Mi.G)
+                        end
+                    end
+                    ########################################################################
+                    # Scale Parameter in Priors for Marker Effect Variances
+                    ########################################################################
+                    if Mi.estimateScale == true
+                        if !is_multi_trait
+                            a = size(Mi.G[1],1)*Mi.df/2   + 1
+                            b = sum(Mi.df ./ (2*Mi.G[1])) + 1
+                            Mi.scale = rand(Gamma(a,1/b))
+                        end
                     end
                     if method in ["BayesC","BayesB","BayesA"]
                         if is_multi_trait
@@ -268,7 +286,6 @@ function MCMC_BayesianAlphabet(mme,df)
                     end
                     if is_Generalized_Bayes
                         prob_methods[methodi] = exp(-dot(ycorr,ycorr)/(2*mme.R))
-                        methodi += 1
                     end
                     ########################################################################
                     # Marker Inclusion Probability
@@ -282,25 +299,6 @@ function MCMC_BayesianAlphabet(mme,df)
                             end
                         else
                             Mi.π = samplePi(sum(Mi.δ[1]), Mi.nMarkers)
-                        end
-                    end
-                    ########################################################################
-                    # Variance of Marker Effects
-                    ########################################################################
-                    if Mi.estimateVariance == true #methd specific estimate_variance
-                        sample_marker_effect_variance(Mi,constraint)
-                        if mme.MCMCinfo.double_precision == false
-                            Mi.G = Float32.(Mi.G)
-                        end
-                    end
-                    ########################################################################
-                    # Scale Parameter in Priors for Marker Effect Variances
-                    ########################################################################
-                    if Mi.estimateScale == true
-                        if !is_multi_trait
-                            a = size(Mi.G[1],1)*Mi.df/2   + 1
-                            b = sum(Mi.df ./ (2*Mi.G[1])) + 1
-                            Mi.scale = rand(Gamma(a,1/b))
                         end
                     end
                 end
