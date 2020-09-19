@@ -205,8 +205,8 @@ function MCMC_BayesianAlphabet(mme,df)
                 ########################################################################
                 # Marker Effects
                 ########################################################################
-                #Mi.method 1) one methos 2) multiple methods e.g.,["BayesA","BayesB","BayesC"]
-                methods,nmethods      = Mi.method, length(Mi.method)
+                #Mi.method 1) one method,"BayesC" 2) multiple methods,["BayesB","BayesC"]
+                methods, nmethods= typeof(Mi.method) == Array{String,1} ? (Mi.method,length(Mi.method)) : ([Mi.method],1)  
                 if is_Generalized_Bayes
                     ycorr_arrays = []
                     Mi_arrays    = []
@@ -284,6 +284,8 @@ function MCMC_BayesianAlphabet(mme,df)
                         else
                             GBLUP!(Mi,ycorr,mme.R,invweights)
                         end
+                    else
+                        error("Method "*method*" is not available.")
                     end
                     if is_Generalized_Bayes
                         prob_methods[methodi] = exp(-dot(ycorr,ycorr)/(2*mme.R))
