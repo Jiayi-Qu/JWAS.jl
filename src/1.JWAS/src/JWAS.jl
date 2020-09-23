@@ -342,6 +342,10 @@ function errors_args(mme)
         error("output_samples_frequency should be an integer > 0.")
     end
 
+    if mme.MCMCinfo.burnin > mme.MCMCinfo.chain_length
+        error("burnin is larger than chain length.")
+    end
+
     if mme.M != 0
         for Mi in mme.M
             if length(Mi.method) == 1 #not generalized Bayesian Alphabet
