@@ -121,6 +121,9 @@ mutable struct Genotypes
   meanScaleVara
   meanScaleVara2
 
+  methods_counts   #generalized Bayes
+  Mi_array
+
   output_genotypes #output genotypes
   Genotypes(a1,a2,a3,a4,a5,a6,a7,a8)=new(false,
                                          a1,a2,a3,a4,a5,a6,a7,a8,a4,false,
@@ -129,6 +132,7 @@ mutable struct Genotypes
                                          false,false,false,false,false,
                                          false,false,false,false,
                                          false,false,false,false,false,false,false,false,false,
+                                         [],[],
                                          false)
 end
 

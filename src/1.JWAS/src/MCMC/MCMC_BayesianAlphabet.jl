@@ -109,6 +109,15 @@ function MCMC_BayesianAlphabet(mme,df)
             else
                 Mi.mean_pi,Mi.mean_pi2 = 0.0,0.0      #inclusion probability
             end
+
+            if is_Generalized_Bayes
+                nmethods = length(Mi.method)
+                for i in 1:nmethods
+                    thisMi   = deepcopy(Mi)
+                    thisMi.mArray = thisMi.mRinvArray = 0
+                    push!(Mi.Mi_array,thisMi)
+                end
+            end
         end
     end
     #phenotypes corrected for all effects
@@ -206,24 +215,35 @@ function MCMC_BayesianAlphabet(mme,df)
                 # Marker Effects
                 ########################################################################
                 #Mi.method 1) one method,"BayesC" 2) multiple methods,["BayesB","BayesC"]
-                methods, nmethods= typeof(Mi.method) == Array{String,1} ? (Mi.method,length(Mi.method)) : ([Mi.method],1)  
+                methods, nmethods= typeof(Mi.method) == Array{String,1} ? (Mi.method,length(Mi.method)) : ([Mi.method],1)
                 if is_Generalized_Bayes
                     ycorr_arrays = []
-                    Mi_arrays    = []
-                    for i in 1:nmethods
+                    for methodi in 1:nmethods
                         #do not use fill; it returns alias, not copies
-                        push!(Mi_arrays,deepcopy(Mi))
                         push!(ycorr_arrays,deepcopy(ycorr))
-                        Mi_arrays[i].method = methods[i]
+                        Mi.Mi_array[methodi].method = methods[methodi]
+                        Mi.Mi_array[methodi].α = deepcopy(Mi.α)
+                        Mi.Mi_array[methodi].β = deepcopy(Mi.β)
+                        Mi.Mi_array[methodi].δ = deepcopy(Mi.δ)
+                        Mi.Mi_array[methodi].π = deepcopy(Mi.π)
+                        Mi.Mi_array[methodi].G = deepcopy(Mi.G)
+                        Mi.Mi_array[methodi].scale = deepcopy(Mi.scale)
+                        Mi.Mi_array[methodi].gammaArray = deepcopy(Mi.gammaArray)
                     end
                     prob_methods = zeros(nmethods)
-                    genoi   = 1
                 end
                 for methodi in 1:nmethods
                     method = methods[methodi]
                     if is_Generalized_Bayes
-                        ycorr = ycorr_arrays[methodi]
-                        Mi    = Mi_arrays[methodi]
+                        ycorr     = ycorr_arrays[methodi]
+                        Mi.method = Mi.Mi_array[methodi].method
+                        Mi.α      = Mi.Mi_array[methodi].α
+                        Mi.β      = Mi.Mi_array[methodi].β
+                        Mi.δ      = Mi.Mi_array[methodi].δ
+                        Mi.π      = Mi.Mi_array[methodi].π
+                        Mi.G      = Mi.Mi_array[methodi].G
+                        Mi.scale  = Mi.Mi_array[methodi].scale
+                        Mi.gammaArray = Mi.Mi_array[methodi].gammaArray
                     end
                     ########################################################################
                     # Variance of Marker Effects
@@ -287,9 +307,6 @@ function MCMC_BayesianAlphabet(mme,df)
                     else
                         error("Method "*method*" is not available.")
                     end
-                    if is_Generalized_Bayes
-                        prob_methods[methodi] = exp(-dot(ycorr,ycorr)/(2*mme.R))
-                    end
                     ########################################################################
                     # Marker Inclusion Probability
                     ########################################################################
@@ -304,14 +321,29 @@ function MCMC_BayesianAlphabet(mme,df)
                             Mi.π = samplePi(sum(Mi.δ[1]), Mi.nMarkers)
                         end
                     end
+                    ########################################################################
+                    # Generalized Bayes
+                    ########################################################################
+                    if is_Generalized_Bayes
+                        prob_methods[methodi] = exp(-dot(ycorr,ycorr)/(2*mme.R))
+                        #verify other parameters are not required
+                        Mi.Mi_array[methodi].π     = Mi.π
+                        Mi.Mi_array[methodi].scale = Mi.scale
+                    end
                 end
                 if is_Generalized_Bayes
-                    prob_methods =prob_methods/sum(prob_methods)
+                    prob_methods = prob_methods/sum(prob_methods)
                     which_bayes  = rand(Categorical(prob_methods))
                     ycorr[:]     = ycorr_arrays[which_bayes]
-                    mme.M[genoi] = deepcopy(Mi_arrays[which_bayes])
-                    mme.M[genoi].method = methods
-                    genoi += 1
+                    Mi.method    = methods
+                    Mi.α         = Mi.Mi_array[which_bayes].α
+                    Mi.β         = Mi.Mi_array[which_bayes].β
+                    Mi.δ         = Mi.Mi_array[which_bayes].δ
+                    Mi.π         = Mi.Mi_array[which_bayes].π
+                    Mi.G         = Mi.Mi_array[which_bayes].G
+                    Mi.scale     = Mi.Mi_array[which_bayes].scale
+                    Mi.gammaArray= Mi.Mi_array[which_bayes].gammaArray
+                    push!(Mi.methods_counts,methods[which_bayes])
                 end
             end
         end
