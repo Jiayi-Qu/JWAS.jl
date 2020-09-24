@@ -20,6 +20,8 @@ end
 function BayesC0!(genotypes,ycorr,vare)
     BayesL!(genotypes.mArray,genotypes.mRinvArray,genotypes.mpRinvm,
             ycorr,genotypes.α[1],[1.0],vare,genotypes.G[1])
+    genotypes.β[1]=genotypes.α[1]
+    genotypes.δ[1]=ones(length(genotypes.α[1]))
 end
 
 function BayesL!(xArray,xRinvArray,xpRinvx,

@@ -89,8 +89,8 @@ function MCMC_BayesianAlphabet(mme,df)
             Mi.meanDelta          = [zero(Mi.δ[traiti]) for traiti = 1:Mi.ntraits] #inclusion indicator for marker effects
             Mi.meanVara           = fill(zero(mme.R),Mi.nMarkers) #posterir mean of variance for marker effect
             Mi.meanVara2          = fill(zero(mme.R),Mi.nMarkers) #variable to save variance for marker effect
-            Mi.meanScaleVara      = fill(zero(mme.R),Mi.nMarkers) #variable to save Scale parameter for prior of marker effect variance
-            Mi.meanScaleVara2     = fill(zero(mme.R),Mi.nMarkers) #variable to save Scale parameter for prior of marker effect variance
+            Mi.meanScaleVara      = 0.0#fill(zero(mme.R),Mi.nMarkers) #variable to save Scale parameter for prior of marker effect variance
+            Mi.meanScaleVara2     = 0.0#fill(zero(mme.R),Mi.nMarkers) #variable to save Scale parameter for prior of marker effect variance
             if is_multi_trait
                 if is_mega_trait
                     Mi.π        = zeros(Mi.ntraits)
@@ -310,7 +310,7 @@ function MCMC_BayesianAlphabet(mme,df)
                     ########################################################################
                     # Marker Inclusion Probability
                     ########################################################################
-                    if Mi.estimatePi == true
+                    if Mi.estimatePi == true #&& (Mi.method in ["BayesB","BayesC"])
                         if is_multi_trait
                             if is_mega_trait
                                 Mi.π = [samplePi(sum(Mi.δ[i]), Mi.nMarkers) for i in 1:mme.nModels]
@@ -327,7 +327,9 @@ function MCMC_BayesianAlphabet(mme,df)
                     if is_Generalized_Bayes
                         prob_methods[methodi] = exp(-dot(ycorr,ycorr)/(2*mme.R))
                         #verify other parameters are not required
-                        Mi.Mi_array[methodi].π     = Mi.π
+                        #latest available non-zero pi sample will be used in BayesC
+                        #pi sample is 0 in RR-BLUP but non-zero in last sample from BayesC
+                        Mi.Mi_array[methodi].π = Mi.π
                         Mi.Mi_array[methodi].scale = Mi.scale
                     end
                 end
