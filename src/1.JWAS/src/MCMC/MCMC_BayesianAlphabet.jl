@@ -216,12 +216,15 @@ function MCMC_BayesianAlphabet(mme,df)
                 ########################################################################
                 #Mi.method 1) one method,"BayesC" 2) multiple methods,["BayesB","BayesC"]
                 methods, nmethods= typeof(Mi.method) == Array{String,1} ? (Mi.method,length(Mi.method)) : ([Mi.method],1)
+                methods = ["BayesA","BayesB"]
+                nmethods = 2
                 if is_Generalized_Bayes
                     ycorr_arrays = []
-                    for methodi in 1:nmethods
+                    for methodi in 1:nmethods #first one is the current, second is the proposal
                         #do not use fill; it returns alias, not copies
                         push!(ycorr_arrays,deepcopy(ycorr))
-                        Mi.Mi_array[methodi].method = methods[methodi]
+                        #Mi.Mi_array[methodi].method = methods[methodi]
+                        Mi.Mi_array[methodi].method = Mi.method
                         Mi.Mi_array[methodi].α = deepcopy(Mi.α)
                         Mi.Mi_array[methodi].β = deepcopy(Mi.β)
                         Mi.Mi_array[methodi].δ = deepcopy(Mi.δ)
@@ -231,12 +234,14 @@ function MCMC_BayesianAlphabet(mme,df)
                         Mi.Mi_array[methodi].gammaArray = deepcopy(Mi.gammaArray)
                     end
                     prob_methods = zeros(nmethods)
+                    prob_methods[1] = exp(-dot(ycorr,ycorr)/(2*mme.R))
                 end
-                for methodi in 1:nmethods
-                    method = methods[methodi]
+                for methodi in 2:nmethods #nmethods=2
+                    #method = methods[methodi]
+                    method = sample(methods)
                     if is_Generalized_Bayes
                         ycorr     = ycorr_arrays[methodi]
-                        Mi.method = Mi.Mi_array[methodi].method
+                        Mi.method = Mi.Mi_array[methodi].method =method
                         Mi.α      = Mi.Mi_array[methodi].α
                         Mi.β      = Mi.Mi_array[methodi].β
                         Mi.δ      = Mi.Mi_array[methodi].δ
@@ -334,10 +339,18 @@ function MCMC_BayesianAlphabet(mme,df)
                     end
                 end
                 if is_Generalized_Bayes
-                    prob_methods = prob_methods/sum(prob_methods)
-                    which_bayes  = rand(Categorical(prob_methods))
+                    #prob_methods = prob_methods/sum(prob_methods)
+                    #which_bayes  = rand(Categorical(prob_methods))
+                    myprob = prob_methods[2]/prob_methods[1]*exp(Mi.prob)
+                    println(myprob)
+                    if rand()<myprob
+                        which_bayes = 2
+                    else
+                        which_bayes = 1
+                    end
                     ycorr[:]     = ycorr_arrays[which_bayes]
-                    Mi.method    = methods
+                    #Mi.method    = methods
+                    Mi.method    = Mi.Mi_array[which_bayes].method
                     Mi.α         = Mi.Mi_array[which_bayes].α
                     Mi.β         = Mi.Mi_array[which_bayes].β
                     Mi.δ         = Mi.Mi_array[which_bayes].δ
@@ -345,7 +358,9 @@ function MCMC_BayesianAlphabet(mme,df)
                     Mi.G         = Mi.Mi_array[which_bayes].G
                     Mi.scale     = Mi.Mi_array[which_bayes].scale
                     Mi.gammaArray= Mi.Mi_array[which_bayes].gammaArray
-                    push!(Mi.methods_counts,methods[which_bayes])
+                    #push!(Mi.methods_counts,methods[which_bayes])
+                    println(Mi.Mi_array[1].method,Mi.Mi_array[2].method)
+                    push!(Mi.methods_counts,Mi.method)
                 end
             end
         end

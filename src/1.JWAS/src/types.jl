@@ -123,6 +123,7 @@ mutable struct Genotypes
 
   methods_counts   #generalized Bayes
   Mi_array
+  prob
 
   output_genotypes #output genotypes
   Genotypes(a1,a2,a3,a4,a5,a6,a7,a8)=new(false,
@@ -132,7 +133,7 @@ mutable struct Genotypes
                                          false,false,false,false,false,
                                          false,false,false,false,
                                          false,false,false,false,false,false,false,false,false,
-                                         [],[],
+                                         [],[],1.0,
                                          false)
 end
 
