@@ -159,7 +159,7 @@ function MCMC_BayesianAlphabet_RRM(mme,df;
         ########################################################################
         mme.ROld = mme.R
         mme.R = sample_variance(ycorr, length(ycorr), mme.df.residual, mme.scaleR)
-
+        #mme.R = sample_variance(ycorr, length(ycorr), mme.df.residual, false, false)
         ########################################################################
         # 2.4 Marker Effects Variance
         ########################################################################

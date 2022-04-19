@@ -69,13 +69,13 @@ end
 
 #results 15
 #
-@time output_new=runMCMC(model,pheno, burnin = 1000,
-    chain_length=5000,RRM=myPhi, output_samples_for_all_parameters = true,seed = 123);
-
-model.scaleR
+@time output_new=runMCMC(model,pheno,
+    chain_length=100,RRM=myPhi, output_samples_for_all_parameters = true,seed = 123);
 
 
-output_old
+
+
+
 
 
 
